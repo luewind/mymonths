@@ -78,53 +78,39 @@ local function get_melt_prob(pos)
 end
 
 
---Places Snow on ground
+--Places Snow on ground or replace grass and flowers with snow
 if mymonths.snow_on_ground == true then
 
 minetest.register_abm({
-	nodenames = {"group:leaves", "group:soil", "default:snowblock"},
+	nodenames = {"group:leaves", "group:soil", "default:snowblock", "group:flora", "mymonths:puddle", "group:plant"},
 	neighbors = {"air"},
 	interval = 8,
 	chance = 20,
 
 	action = function (pos, node)
+
+		if (mymonths.weather ~= "snow" and mymonths.weather ~= "snowstorm") then
+			return
+		end
 
 		local biome_jungle = minetest.find_node_near(pos, 5, "default:jungletree", "default:junglegrass")
 
-		pos.y = pos.y + 1 -- check above node
+		if biome_jungle ~= nil then
+			return
+		end
 
-		local na = minetest.get_node(pos)
-
-		if (mymonths.weather == "snow" or mymonths.weather == "snowstorm")
-		and biome_jungle == nil then
-
-			if not is_inside(pos) and na.name == "air" then
-
-				minetest.set_node(pos, {name = "mymonths:snow_cover_1"})
-
+		if not is_inside(pos) then
+			if minetest.get_node_group(node.name, "flora") ~= 0 or minetest.get_node_group(node.name, "plant") ~= 0  then
+				minetest.set_node(pos, {name="mymonths:snow_cover_1"})
+			else
+				pos.y = pos.y + 1 -- check above node
+				node = minetest.get_node(pos)
+				if node.name == "air" then
+					minetest.set_node(pos, {name = "mymonths:snow_cover_1"})
+				end
 			end
 		end
-	end
-})
 
---Replace grass and flowers with snow
-minetest.register_abm({
-	nodenames = {"group:flora", "mymonths:puddle", "group:plant"},
-	neighbors = {"air"},
-	interval = 8,
-	chance = 20,
-
-	action = function (pos, node)
-
-		local biome_jungle = minetest.find_node_near(pos, 5, "default:jungletree","default:junglegrass")
-
-		if mymonths.weather == "snow" or mymonths.weather == "snowstorm"
-		and biome_jungle == nil then
-
-				if not is_inside(pos) then
-					minetest.set_node(pos, {name="mymonths:snow_cover_1"})
-				end
-		end
 	end
 })
 
@@ -196,6 +182,10 @@ minetest.register_abm({
 
 	action = function (pos, node)
 
+		if mymonths.weather2 ~= "clear" then
+			return
+		end
+
 		if mymonths.month_counter == 12
 		or mymonths.month_counter == 1
 		or mymonths.month_counter == 2 then
@@ -203,6 +193,13 @@ minetest.register_abm({
 		end
 
 		local melt_prob = get_melt_prob(pos)
+
+		if mymonths.month_counter == 11 then
+			melt_prob = 3 * melt_prob
+		elseif mymonths.month_counter == 3
+		or mymonths.month_counter == 4 then
+			melt_prob = 2 * melt_prob
+		end
 
 		if melt_prob == 1000 then
 			return
